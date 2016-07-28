@@ -50,7 +50,7 @@ def main (argv):
         if opt == '--port':
             port = arg
         elif opt == '--user':
-            user = arg
+            username = arg
         elif opt == '--pass':
             password = arg
 
