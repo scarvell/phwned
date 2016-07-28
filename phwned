@@ -66,6 +66,7 @@ def main (argv):
     # Connect to the phone
     sshClient.connect(
         host,
+        port=port,
         username=username,
         password=password,
         look_for_keys=False,
