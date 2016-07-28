@@ -102,18 +102,18 @@ def main (argv):
         if ("authorized_keys" in phone.recv(1024)):
             # Holey moley cheesy guacamole, we have a backdoor!!
             print WARNING + "[!] Backdoor detected!" + ENDC
-            print "[+] Removing backdoor"
+            print "[+] Removing backdoor.."
 
             # Delete vendors key and wait for response
-            phone.send("rm /system/root/.ssh/authorized_keys\n")
+            phone.send("rm -f /system/root/.ssh/authorized_keys\n")
             time.sleep(1)
-            phone.recv(1024)
+            if ("Read-only file system" in phone.recv(1024)):
+                print FAIL + "[!] Kernel has been updated (R/O file system)"
 
             # Check that we've removed the backdoor
             phone.send("ls\n")
             time.sleep(1)
             output = phone.recv(1024)
-
             # Ah crap, didn't work :(
             if ("authorized_keys" in output):
                 fin(False)
