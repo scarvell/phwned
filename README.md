@@ -18,7 +18,8 @@ Grandstream GXV3275 Android VoIP phones come with a vendor backdoor by default w
     --user=<username> (optional) SSH username for phone. Default: admin
 
 ## Usage
-$ ./phwned --host=10.0.0.13
+
+    $ ./phwned --host=10.0.0.13
 
          __                                     __
         /\ \                                   /\ \
